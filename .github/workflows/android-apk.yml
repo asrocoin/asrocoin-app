@@ -1,0 +1,45 @@
+name: ASROCOIN Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android-apk.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+      - name: Flutter kur
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Android projesini hazırla
+        run: |
+          flutter create --platforms=android --org com.asrocoin --project-name asrocoin .
+          find android -type f -exec sed -i 's/com\.asrocoin\.asrocoin/com.asrocoin.app/g' {} +
+          mkdir -p android/app/src/main/kotlin/com/asrocoin/app
+          if [ -f android/app/src/main/kotlin/com/asrocoin/asrocoin/MainActivity.kt ]; then
+            mv android/app/src/main/kotlin/com/asrocoin/asrocoin/MainActivity.kt android/app/src/main/kotlin/com/asrocoin/app/MainActivity.kt
+          fi
+          sed -i 's/android:label="asrocoin"/android:label="ASROCOIN"/' android/app/src/main/AndroidManifest.xml
+      - name: Paketleri hazırla
+        run: flutter pub get
+      - name: Kodu kontrol et
+        run: flutter analyze
+      - name: APK üret
+        run: flutter build apk --release
+      - name: APK dosyasını yayınla
+        uses: actions/upload-artifact@v4
+        with:
+          name: asrocoin-android-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
