@@ -2,59 +2,97 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'l10n/generated/app_localizations.dart';
 
 const supabaseUrl = 'https://duddadnznisciylzmixf.supabase.co';
 const supabasePublishableKey = 'sb_publishable_N-lLeJ7n0olf3A56VaEdOg_gvHJe0Tc';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url: supabaseUrl,
-    publishableKey: supabasePublishableKey,
-  );
+  final preferences = await SharedPreferences.getInstance();
+  appLocaleController = LocaleController(preferences);
+  await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
   runApp(const AsroCoinApp());
 }
 
 final supabase = Supabase.instance.client;
+late final LocaleController appLocaleController;
+
+class LocaleController extends ValueNotifier<Locale?> {
+  LocaleController(this.preferences) : super(_read(preferences));
+  final SharedPreferences preferences;
+  static const key = 'preferred_locale';
+  static Locale? _read(SharedPreferences p) {
+    final code = p.getString(key);
+    if (code == null || code.isEmpty) return null;
+    return code == 'pt_BR' ? const Locale('pt', 'BR') : Locale(code);
+  }
+  Future<void> setLocaleCode(String? code) async {
+    if (code == null) {
+      await preferences.remove(key);
+      value = null;
+    } else {
+      await preferences.setString(key, code);
+      value = code == 'pt_BR' ? const Locale('pt', 'BR') : Locale(code);
+    }
+  }
+  String? get selectedCode {
+    final locale = value;
+    if (locale == null) return null;
+    return locale.countryCode == null ? locale.languageCode : '${locale.languageCode}_${locale.countryCode}';
+  }
+}
+
+extension LocalizationContext on BuildContext {
+  AppLocalizations get l10n => AppLocalizations.of(this);
+  String get localeName => Localizations.localeOf(this).toString();
+}
+String formatPercent(BuildContext context, double value) =>
+    NumberFormat.percentPattern(context.localeName).format(value / 100);
+String formatPrice(BuildContext context, double value) {
+  final digits = value >= 1000 ? 0 : (value >= 1 ? 2 : 4);
+  return NumberFormat.currency(locale: context.localeName, symbol: r'$', decimalDigits: digits).format(value);
+}
 
 class AsroCoinApp extends StatelessWidget {
   const AsroCoinApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     const seed = Color(0xFF1677FF);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'ASROCOIN',
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seed,
+    return ValueListenableBuilder<Locale?>(
+      valueListenable: appLocaleController,
+      builder: (context, locale, _) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        onGenerateTitle: (_) => 'ASROCOIN',
+        locale: locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        theme: ThemeData(
+          useMaterial3: true,
           brightness: Brightness.dark,
-        ),
-        scaffoldBackgroundColor: const Color(0xFF07111F),
-        cardTheme: const CardThemeData(
-          color: Color(0xFF101D2E),
-          elevation: 0,
-          margin: EdgeInsets.zero,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF101D2E),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
+          colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark),
+          scaffoldBackgroundColor: const Color(0xFF07111F),
+          cardTheme: const CardThemeData(color: Color(0xFF101D2E), elevation: 0, margin: EdgeInsets.zero),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: const Color(0xFF101D2E),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
           ),
+          navigationBarTheme: const NavigationBarThemeData(backgroundColor: Color(0xFF0A1626), indicatorColor: Color(0xFF153D70)),
         ),
-        navigationBarTheme: const NavigationBarThemeData(
-          backgroundColor: Color(0xFF0A1626),
-          indicatorColor: Color(0xFF153D70),
-        ),
+        home: const MainShell(),
       ),
-      home: const MainShell(),
     );
   }
 }
@@ -198,6 +236,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final pages = [
       MarketPage(key: ValueKey(refreshToken)),
       const LeaguePage(),
@@ -208,21 +247,21 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (value) => setState(() => index = value),
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.candlestick_chart_outlined),
             selectedIcon: Icon(Icons.candlestick_chart),
-            label: 'Piyasa',
+            label: l10n.navMarket,
           ),
           NavigationDestination(
             icon: Icon(Icons.emoji_events_outlined),
             selectedIcon: Icon(Icons.emoji_events),
-            label: 'Lig',
+            label: l10n.navLeague,
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: 'Profil',
+            label: l10n.navProfile,
           ),
         ],
       ),
@@ -274,30 +313,29 @@ class _MarketPageState extends State<MarketPage> {
       if (!mounted) return;
       setState(() {
         loading = false;
-        error = 'Veriler yenilenemedi. İnternet bağlantını kontrol et.';
+        error = context.l10n.dataRefreshError;
       });
     }
   }
 
   Future<void> _vote(CoinData coin, bool up) async {
     if (supabase.auth.currentUser == null) {
-      _message('Tahmin yapmak için Profil bölümünden giriş yap.');
+      _message(context.l10n.loginToPredict);
       return;
     }
     if (votes.containsKey(coin.id)) {
-      _message('Bu coin için aktif 24 saatlik tahminin zaten var.');
+      _message(context.l10n.activePredictionExists);
       return;
     }
     try {
       await service.vote(coin, up);
       if (!mounted) return;
       setState(() => votes[coin.id] = up);
-      _message(
-        '${coin.symbol} tahminin kaydedildi: ${up ? 'YUKARI' : 'AŞAĞI'}',
-      );
+      final direction = up ? context.l10n.directionUp : context.l10n.directionDown;
+      _message(context.l10n.predictionSaved(coin.symbol, direction));
       await _refresh();
     } catch (_) {
-      _message('Tahmin kaydedilemedi. Biraz sonra tekrar dene.');
+      _message(context.l10n.predictionSaveError);
     }
   }
 
@@ -310,6 +348,7 @@ class _MarketPageState extends State<MarketPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final visible = coins.where((coin) => coin.major == majors).toList();
     final allVotes = coins.fold<int>(0, (sum, coin) => sum + coin.totalVotes);
     final marketBullish = allVotes == 0
@@ -334,15 +373,15 @@ class _MarketPageState extends State<MarketPage> {
                 _MarketPulse(value: marketBullish, votes: allVotes),
                 const SizedBox(height: 18),
                 SegmentedButton<bool>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: true,
-                      label: Text('Majör Coinler'),
+                      label: Text(l10n.majorCoins),
                       icon: Icon(Icons.stars),
                     ),
                     ButtonSegment(
                       value: false,
-                      label: Text('Altcoinler'),
+                      label: Text(l10n.altcoins),
                       icon: Icon(Icons.bubble_chart),
                     ),
                   ],
@@ -354,7 +393,7 @@ class _MarketPageState extends State<MarketPage> {
                 Row(
                   children: [
                     Text(
-                      majors ? 'MAJÖR COİNLER' : 'ALTCOİNLER',
+                      majors ? l10n.majorCoins.toUpperCase() : l10n.altcoins.toUpperCase(),
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -368,8 +407,8 @@ class _MarketPageState extends State<MarketPage> {
                       color: Color(0xFF24D18F),
                     ),
                     const SizedBox(width: 6),
-                    const Text(
-                      '7/24 CANLI',
+                    Text(
+                      l10n.liveMarket,
                       style: TextStyle(fontSize: 11, color: Color(0xFF8EA4BD)),
                     ),
                   ],
@@ -409,6 +448,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Row(
       children: [
         Container(
@@ -425,7 +465,7 @@ class _Header extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -438,7 +478,7 @@ class _Header extends StatelessWidget {
                 ),
               ),
               Text(
-                'Kriptonun yönünü tahmin et',
+                l10n.tagline,
                 style: TextStyle(fontSize: 12, color: Color(0xFF8EA4BD)),
               ),
             ],
@@ -461,6 +501,7 @@ class _MarketPulse extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final up = value >= 50;
     return Container(
       padding: const EdgeInsets.all(18),
@@ -479,8 +520,8 @@ class _MarketPulse extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'PİYASA SENTİMENTİ',
+                Text(
+                  l10n.marketSentiment,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -489,7 +530,7 @@ class _MarketPulse extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '%${value.toStringAsFixed(0)} ${up ? 'YUKARI' : 'AŞAĞI'}',
+                  '${formatPercent(context, value)} ${up ? l10n.directionUp : l10n.directionDown}',
                   style: const TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.w900,
@@ -497,7 +538,7 @@ class _MarketPulse extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  votes == 0 ? 'İlk tahmini sen yap' : '$votes aktif tahmin',
+                  votes == 0 ? l10n.firstPrediction : l10n.activePredictions(votes),
                   style:
                       const TextStyle(fontSize: 12, color: Color(0xFFC7D6E8)),
                 ),
@@ -532,11 +573,7 @@ class CoinCard extends StatelessWidget {
   final bool? vote;
   final void Function(CoinData coin, bool up) onVote;
 
-  String get priceText {
-    if (coin.price >= 1000) return '\$${coin.price.toStringAsFixed(0)}';
-    if (coin.price >= 1) return '\$${coin.price.toStringAsFixed(2)}';
-    return '\$${coin.price.toStringAsFixed(4)}';
-  }
+  String priceText(BuildContext context) => formatPrice(context, coin.price);
 
   @override
   Widget build(BuildContext context) {
@@ -582,7 +619,7 @@ class CoinCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      priceText,
+                      priceText(context),
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
@@ -634,13 +671,13 @@ class CoinCard extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  '%${coin.bullish.toStringAsFixed(0)} yukarı',
+                  context.l10n.sentimentUp(formatPercent(context, coin.bullish)),
                   style:
                       const TextStyle(fontSize: 11, color: Color(0xFF8EA4BD)),
                 ),
                 const Spacer(),
                 Text(
-                  '${coin.totalVotes} aktif tahmin',
+                  context.l10n.activePredictions(coin.totalVotes),
                   style:
                       const TextStyle(fontSize: 11, color: Color(0xFF8EA4BD)),
                 ),
@@ -653,7 +690,7 @@ class CoinCard extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: vote == null ? () => onVote(coin, true) : null,
                     icon: const Icon(Icons.trending_up),
-                    label: Text(vote == true ? 'SEÇİLDİ' : 'YUKARI'),
+                    label: Text(vote == true ? context.l10n.selected : context.l10n.directionUp),
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF147A5A),
                     ),
@@ -664,7 +701,7 @@ class CoinCard extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: vote == null ? () => onVote(coin, false) : null,
                     icon: const Icon(Icons.trending_down),
-                    label: Text(vote == false ? 'SEÇİLDİ' : 'AŞAĞI'),
+                    label: Text(vote == false ? context.l10n.selected : context.l10n.directionDown),
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF9C3345),
                     ),
@@ -673,8 +710,8 @@ class CoinCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Tahmin, verildiği andan 24 saat sonra sonuçlanır.',
+            Text(
+              context.l10n.predictionResolutionInfo,
               style: TextStyle(fontSize: 10, color: Color(0xFF6F849E)),
             ),
           ],
@@ -713,8 +750,9 @@ class _LeaguePageState extends State<LeaguePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('ASROCOIN LİGİ')),
+      appBar: AppBar(title: Text(l10n.leagueTitle)),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: future,
         builder: (context, snapshot) {
@@ -723,8 +761,8 @@ class _LeaguePageState extends State<LeaguePage> {
           }
           final rows = snapshot.data ?? [];
           if (rows.isEmpty) {
-            return const Center(
-              child: Text('Lig henüz boş. İlk puanı sen kazan!'),
+            return Center(
+              child: Text(l10n.leagueEmpty, textAlign: TextAlign.center),
             );
           }
           return RefreshIndicator(
@@ -748,10 +786,10 @@ class _LeaguePageState extends State<LeaguePage> {
                       '${row['display_name'] ?? row['username'] ?? 'ASROCU'}',
                     ),
                     subtitle: Text(
-                      '$correct/$total doğru • %${accuracy.toStringAsFixed(0)} başarı',
+                      l10n.accuracySummary(correct, total, formatPercent(context, accuracy)),
                     ),
                     trailing: Text(
-                      '${row['points'] ?? 0} P',
+                      l10n.points(NumberFormat.decimalPattern(context.localeName).format(row['points'] ?? 0)),
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),
@@ -809,19 +847,19 @@ class _ProfilePageState extends State<ProfilePage> {
           email: email.text.trim(),
           password: password.text,
         );
-        message = 'Kayıt tamamlandı. E-postandaki onay bağlantısına dokun.';
+        message = context.l10n.registrationComplete;
       } else {
         await supabase.auth.signInWithPassword(
           email: email.text.trim(),
           password: password.text,
         );
-        message = 'Giriş başarılı.';
+        message = context.l10n.loginSuccess;
       }
       widget.onAuthChanged();
     } on AuthException catch (e) {
       message = e.message;
     } catch (_) {
-      message = 'İşlem tamamlanamadı. Tekrar dene.';
+      message = context.l10n.operationFailed;
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -834,23 +872,44 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final user = supabase.auth.currentUser;
     return Scaffold(
-      appBar: AppBar(title: const Text('PROFİL')),
+      appBar: AppBar(title: Text(l10n.profileTitle)),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           const Icon(Icons.account_circle, size: 90, color: Color(0xFF1677FF)),
           const SizedBox(height: 18),
+          Text(l10n.settings, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          ValueListenableBuilder<Locale?>(
+            valueListenable: appLocaleController,
+            builder: (context, _, __) => DropdownButtonFormField<String?>(
+              key: ValueKey(appLocaleController.selectedCode),
+              initialValue: appLocaleController.selectedCode,
+              isExpanded: true,
+              decoration: InputDecoration(labelText: l10n.language, prefixIcon: const Icon(Icons.language)),
+              items: [
+                DropdownMenuItem(value: null, child: Text(l10n.systemLanguage, overflow: TextOverflow.ellipsis)),
+                DropdownMenuItem(value: 'en', child: Text(l10n.english)),
+                DropdownMenuItem(value: 'tr', child: Text(l10n.turkish)),
+                DropdownMenuItem(value: 'es', child: Text(l10n.spanish)),
+                DropdownMenuItem(value: 'pt_BR', child: Text(l10n.brazilianPortuguese)),
+              ],
+              onChanged: appLocaleController.setLocaleCode,
+            ),
+          ),
+          const SizedBox(height: 28),
           if (user != null) ...[
             Text(
-              user.email ?? 'ASROCOIN kullanıcısı',
+              user.email ?? l10n.userFallback,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Tahminlerin 24 saat sonra otomatik sonuçlanır.',
+            Text(
+              l10n.predictionsResolveInfo,
               textAlign: TextAlign.center,
               style: TextStyle(color: Color(0xFF8EA4BD)),
             ),
@@ -858,11 +917,11 @@ class _ProfilePageState extends State<ProfilePage> {
             OutlinedButton.icon(
               onPressed: _logout,
               icon: const Icon(Icons.logout),
-              label: const Text('Çıkış yap'),
+              label: Text(l10n.logout),
             ),
           ] else ...[
             Text(
-              register ? 'Hesap oluştur' : 'Giriş yap',
+              register ? l10n.createAccount : l10n.login,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
             ),
@@ -872,7 +931,7 @@ class _ProfilePageState extends State<ProfilePage> {
               keyboardType: TextInputType.emailAddress,
               autocorrect: false,
               decoration: const InputDecoration(
-                labelText: 'E-posta',
+                labelText: l10n.email,
                 prefixIcon: Icon(Icons.email_outlined),
               ),
             ),
@@ -881,7 +940,7 @@ class _ProfilePageState extends State<ProfilePage> {
               controller: password,
               obscureText: true,
               decoration: const InputDecoration(
-                labelText: 'Şifre',
+                labelText: l10n.password,
                 prefixIcon: Icon(Icons.lock_outline),
               ),
             ),
@@ -896,7 +955,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(register ? 'KAYIT OL' : 'GİRİŞ YAP'),
+                    : Text(register ? l10n.register : l10n.loginButton),
               ),
             ),
             TextButton(
@@ -908,8 +967,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       }),
               child: Text(
                 register
-                    ? 'Zaten hesabın var mı? Giriş yap'
-                    : 'Hesabın yok mu? Kayıt ol',
+                    ? l10n.alreadyHaveAccount
+                    : l10n.noAccount,
               ),
             ),
             if (message != null)
