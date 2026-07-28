@@ -1,0 +1,93 @@
+{
+  "@@locale": "en",
+  "navMarket": "Market",
+  "navLeague": "League",
+  "navProfile": "Profile",
+  "tagline": "Predict the direction of crypto",
+  "marketSentiment": "MARKET SENTIMENT",
+  "firstPrediction": "Make the first prediction",
+  "activePredictions": "{count} active predictions",
+  "@activePredictions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "majorCoins": "Major Coins",
+  "altcoins": "Altcoins",
+  "liveMarket": "LIVE 24/7",
+  "dataRefreshError": "Data could not be refreshed. Check your internet connection.",
+  "loginToPredict": "Sign in from Profile to make a prediction.",
+  "activePredictionExists": "You already have an active 24-hour prediction for this coin.",
+  "predictionSaved": "Your {symbol} prediction was saved: {direction}",
+  "@predictionSaved": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "predictionSaveError": "The prediction could not be saved. Try again shortly.",
+  "directionUp": "UP",
+  "directionDown": "DOWN",
+  "selected": "SELECTED",
+  "predictionResolutionInfo": "The prediction is resolved 24 hours after it is placed.",
+  "sentimentUp": "{percent} up",
+  "@sentimentUp": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueTitle": "ASROCOIN LEAGUE",
+  "leagueEmpty": "The league is empty. Earn the first points!",
+  "accuracySummary": "{correct}/{total} correct • {percent} success",
+  "@accuracySummary": {
+    "placeholders": {
+      "correct": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "points": "{points} P",
+  "@points": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "profileTitle": "PROFILE",
+  "userFallback": "ASROCOIN user",
+  "predictionsResolveInfo": "Your predictions are resolved automatically after 24 hours.",
+  "logout": "Sign out",
+  "createAccount": "Create account",
+  "login": "Sign in",
+  "email": "Email",
+  "password": "Password",
+  "register": "REGISTER",
+  "loginButton": "SIGN IN",
+  "alreadyHaveAccount": "Already have an account? Sign in",
+  "noAccount": "Don't have an account? Register",
+  "registrationComplete": "Registration complete. Tap the confirmation link in your email.",
+  "loginSuccess": "Signed in successfully.",
+  "operationFailed": "The operation could not be completed. Try again.",
+  "language": "Language",
+  "systemLanguage": "System default",
+  "english": "English",
+  "turkish": "Turkish",
+  "spanish": "Spanish",
+  "brazilianPortuguese": "Português (Brasil)",
+  "settings": "Settings"
+}
