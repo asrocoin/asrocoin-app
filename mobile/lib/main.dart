@@ -169,7 +169,7 @@ class MarketService {
     );
     final response = await http.get(uri).timeout(const Duration(seconds: 12));
     if (response.statusCode != 200) {
-      throw Exception('Binance fiyatları alınamadı (${response.statusCode})');
+      throw Exception('Binance HTTP ${response.statusCode}');
     }
     final tickerRows =
         List<Map<String, dynamic>>.from(jsonDecode(response.body));
@@ -930,7 +930,7 @@ class _ProfilePageState extends State<ProfilePage> {
               controller: email,
               keyboardType: TextInputType.emailAddress,
               autocorrect: false,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: l10n.email,
                 prefixIcon: Icon(Icons.email_outlined),
               ),
@@ -939,7 +939,7 @@ class _ProfilePageState extends State<ProfilePage> {
             TextField(
               controller: password,
               obscureText: true,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: l10n.password,
                 prefixIcon: Icon(Icons.lock_outline),
               ),
