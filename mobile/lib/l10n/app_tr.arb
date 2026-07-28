@@ -1,0 +1,93 @@
+{
+  "@@locale": "tr",
+  "navMarket": "Piyasa",
+  "navLeague": "Lig",
+  "navProfile": "Profil",
+  "tagline": "Kriptonun yönünü tahmin et",
+  "marketSentiment": "PİYASA SENTİMENTİ",
+  "firstPrediction": "İlk tahmini sen yap",
+  "activePredictions": "{count} aktif tahmin",
+  "@activePredictions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "majorCoins": "Majör Coinler",
+  "altcoins": "Altcoinler",
+  "liveMarket": "7/24 CANLI",
+  "dataRefreshError": "Veriler yenilenemedi. İnternet bağlantını kontrol et.",
+  "loginToPredict": "Tahmin yapmak için Profil bölümünden giriş yap.",
+  "activePredictionExists": "Bu coin için aktif 24 saatlik tahminin zaten var.",
+  "predictionSaved": "{symbol} tahminin kaydedildi: {direction}",
+  "@predictionSaved": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "predictionSaveError": "Tahmin kaydedilemedi. Biraz sonra tekrar dene.",
+  "directionUp": "YUKARI",
+  "directionDown": "AŞAĞI",
+  "selected": "SEÇİLDİ",
+  "predictionResolutionInfo": "Tahmin, verildiği andan 24 saat sonra sonuçlanır.",
+  "sentimentUp": "{percent} yukarı",
+  "@sentimentUp": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueTitle": "ASROCOIN LİGİ",
+  "leagueEmpty": "Lig henüz boş. İlk puanı sen kazan!",
+  "accuracySummary": "{correct}/{total} doğru • {percent} başarı",
+  "@accuracySummary": {
+    "placeholders": {
+      "correct": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "points": "{points} P",
+  "@points": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "profileTitle": "PROFİL",
+  "userFallback": "ASROCOIN kullanıcısı",
+  "predictionsResolveInfo": "Tahminlerin 24 saat sonra otomatik sonuçlanır.",
+  "logout": "Çıkış yap",
+  "createAccount": "Hesap oluştur",
+  "login": "Giriş yap",
+  "email": "E-posta",
+  "password": "Şifre",
+  "register": "KAYIT OL",
+  "loginButton": "GİRİŞ YAP",
+  "alreadyHaveAccount": "Zaten hesabın var mı? Giriş yap",
+  "noAccount": "Hesabın yok mu? Kayıt ol",
+  "registrationComplete": "Kayıt tamamlandı. E-postandaki onay bağlantısına dokun.",
+  "loginSuccess": "Giriş başarılı.",
+  "operationFailed": "İşlem tamamlanamadı. Tekrar dene.",
+  "language": "Dil",
+  "systemLanguage": "Sistem dili",
+  "english": "English",
+  "turkish": "Türkçe",
+  "spanish": "Español",
+  "brazilianPortuguese": "Português (Brasil)",
+  "settings": "Ayarlar"
+}
