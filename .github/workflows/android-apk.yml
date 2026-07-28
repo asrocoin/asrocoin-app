@@ -31,11 +31,12 @@ jobs:
             mv android/app/src/main/kotlin/com/asrocoin/asrocoin/MainActivity.kt android/app/src/main/kotlin/com/asrocoin/app/MainActivity.kt
           fi
           sed -i 's/android:label="asrocoin"/android:label="ASROCOIN"/' android/app/src/main/AndroidManifest.xml
-          rm -rf test
       - name: Paketleri hazırla
         run: flutter pub get
       - name: Kodu kontrol et
         run: flutter analyze
+      - name: Lokalizasyon testlerini çalıştır
+        run: flutter test
       - name: APK üret
         run: flutter build apk --release
       - name: APK dosyasını yayınla
