@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('all supported locales load their translated interface', () async {
-    const expectedLocales = {'en', 'tr', 'es', 'pt_BR'};
+    const expectedLocales = {'en', 'tr', 'es', 'pt', 'pt_BR'};
     final loadedLocales = <String>{};
 
     for (final locale in AppLocalizations.supportedLocales) {
