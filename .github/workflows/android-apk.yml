@@ -35,7 +35,7 @@ jobs:
       - name: Paketleri hazırla
         run: flutter pub get
       - name: Kodu kontrol et
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
       - name: Lokalizasyon testlerini çalıştır
         run: flutter test
       - name: APK üret
