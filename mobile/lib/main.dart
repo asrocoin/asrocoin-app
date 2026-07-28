@@ -778,7 +778,7 @@ class _LeaguePageState extends State<LeaguePage> {
                 final row = rows[index];
                 final total = row['total_predictions'] as int? ?? 0;
                 final correct = row['correct_predictions'] as int? ?? 0;
-                final accuracy = total == 0 ? 0 : correct * 100 / total;
+                final accuracy = total == 0 ? 0.0 : correct * 100.0 / total;
                 return Card(
                   child: ListTile(
                     leading: CircleAvatar(child: Text('${index + 1}')),
