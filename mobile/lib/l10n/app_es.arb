@@ -1,0 +1,93 @@
+{
+  "@@locale": "es",
+  "navMarket": "Mercado",
+  "navLeague": "Liga",
+  "navProfile": "Perfil",
+  "tagline": "Predice la dirección del mercado cripto",
+  "marketSentiment": "SENTIMIENTO DEL MERCADO",
+  "firstPrediction": "Haz la primera predicción",
+  "activePredictions": "{count} predicciones activas",
+  "@activePredictions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "majorCoins": "Criptomonedas principales",
+  "altcoins": "Altcoins",
+  "liveMarket": "EN VIVO 24/7",
+  "dataRefreshError": "No se pudieron actualizar los datos. Comprueba tu conexión a internet.",
+  "loginToPredict": "Inicia sesión desde Perfil para hacer una predicción.",
+  "activePredictionExists": "Ya tienes una predicción activa de 24 horas para esta moneda.",
+  "predictionSaved": "Tu predicción de {symbol} se guardó: {direction}",
+  "@predictionSaved": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "predictionSaveError": "No se pudo guardar la predicción. Inténtalo de nuevo en breve.",
+  "directionUp": "SUBE",
+  "directionDown": "BAJA",
+  "selected": "SELECCIONADO",
+  "predictionResolutionInfo": "La predicción se resuelve 24 horas después de realizarla.",
+  "sentimentUp": "{percent} al alza",
+  "@sentimentUp": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueTitle": "LIGA ASROCOIN",
+  "leagueEmpty": "La liga está vacía. ¡Consigue los primeros puntos!",
+  "accuracySummary": "{correct}/{total} correctas • {percent} de acierto",
+  "@accuracySummary": {
+    "placeholders": {
+      "correct": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "points": "{points} P",
+  "@points": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "profileTitle": "PERFIL",
+  "userFallback": "Usuario de ASROCOIN",
+  "predictionsResolveInfo": "Tus predicciones se resuelven automáticamente después de 24 horas.",
+  "logout": "Cerrar sesión",
+  "createAccount": "Crear una cuenta",
+  "login": "Iniciar sesión",
+  "email": "Correo electrónico",
+  "password": "Contraseña",
+  "register": "REGISTRARSE",
+  "loginButton": "INICIAR SESIÓN",
+  "alreadyHaveAccount": "¿Ya tienes una cuenta? Inicia sesión",
+  "noAccount": "¿No tienes una cuenta? Regístrate",
+  "registrationComplete": "Registro completado. Pulsa el enlace de confirmación enviado a tu correo.",
+  "loginSuccess": "Sesión iniciada correctamente.",
+  "operationFailed": "No se pudo completar la operación. Inténtalo de nuevo.",
+  "language": "Idioma",
+  "systemLanguage": "Idioma del sistema",
+  "english": "English",
+  "turkish": "Türkçe",
+  "spanish": "Español",
+  "brazilianPortuguese": "Português (Brasil)",
+  "settings": "Ajustes"
+}
