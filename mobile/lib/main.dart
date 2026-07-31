@@ -17,7 +17,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final preferences = await SharedPreferences.getInstance();
   appLocaleController = LocaleController(preferences);
-  await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabasePublishableKey);
   runApp(const AsroCoinApp());
 }
 
