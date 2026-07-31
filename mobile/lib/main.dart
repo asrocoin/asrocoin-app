@@ -167,20 +167,28 @@ class MarketService {
         coinRows.map((row) => row['binance_symbol'] as String).toList(),
       ),
       _loadSentiment(),
+      _loadCachedPrices(),
     ]);
     final tickerRows = results[0] as List<Map<String, dynamic>>;
     final sentimentRows = results[1] as List<Map<String, dynamic>>;
+    final cachedPriceRows = results[2] as List<Map<String, dynamic>>;
     final tickerBySymbol = {
       for (final row in tickerRows) row['symbol'] as String: row,
     };
     final sentimentById = {
       for (final row in sentimentRows) row['coin_id'] as int: row,
     };
+    final cachedPriceById = <int, Map<String, dynamic>>{};
+    for (final row in cachedPriceRows) {
+      final coinId = int.tryParse('${row['coin_id']}');
+      if (coinId != null) cachedPriceById[coinId] = row;
+    }
 
     return coinRows.map((row) {
       final id = row['id'] as int;
       final ticker = tickerBySymbol[row['binance_symbol']] ?? const {};
       final sentiment = sentimentById[id] ?? const {};
+      final cachedPrice = cachedPriceById[id] ?? const {};
       return CoinData(
         id: id,
         symbol: row['symbol'] as String,
@@ -188,8 +196,14 @@ class MarketService {
         binanceSymbol: row['binance_symbol'] as String,
         category: row['category'] as String,
         sortOrder: row['sort_order'] as int,
-        price: double.tryParse('${ticker['lastPrice'] ?? 0}') ?? 0,
-        change: double.tryParse('${ticker['priceChangePercent'] ?? 0}') ?? 0,
+        price: double.tryParse(
+              '${ticker['lastPrice'] ?? cachedPrice['price'] ?? cachedPrice['last_price'] ?? 0}',
+            ) ??
+            0,
+        change: double.tryParse(
+              '${ticker['priceChangePercent'] ?? cachedPrice['price_change_percent'] ?? cachedPrice['change_24h'] ?? cachedPrice['price_change_24h'] ?? 0}',
+            ) ??
+            0,
         bullish: double.tryParse('${sentiment['up_percentage'] ?? 50}') ?? 50,
         totalVotes: int.tryParse('${sentiment['total_votes'] ?? 0}') ?? 0,
       );
@@ -220,6 +234,17 @@ class MarketService {
       );
     } catch (error) {
       debugPrint('Sentiment unavailable: $error');
+      return const [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadCachedPrices() async {
+    try {
+      return List<Map<String, dynamic>>.from(
+        await supabase.from('coin_prices').select().limit(1000),
+      );
+    } catch (error) {
+      debugPrint('Cached prices unavailable: $error');
       return const [];
     }
   }
