@@ -229,55 +229,44 @@ class MarketService {
   ) async {
     const hosts = [
       'data-api.binance.vision',
-      'api.binance.com',
       'api-gcp.binance.com',
-      'api1.binance.com',
-      'api2.binance.com',
-      'api3.binance.com',
-      'api4.binance.com',
+      'api.binance.com',
     ];
-    final tickers = <Map<String, dynamic>>[];
-    Object? lastError;
 
-    for (final symbol in symbols) {
-      Map<String, dynamic>? ticker;
-      for (final host in hosts) {
-        try {
-          final response = await http
-              .get(
-                Uri.https(
-                  host,
-                  '/api/v3/ticker/24hr',
-                  {'symbol': symbol},
-                ),
-                headers: const {'Accept': 'application/json'},
-              )
-              .timeout(const Duration(seconds: 8));
-          if (response.statusCode != 200) {
-            lastError = 'HTTP ${response.statusCode} ($host / $symbol)';
-            continue;
-          }
-          final decoded = jsonDecode(response.body);
-          if (decoded is Map<String, dynamic>) {
-            ticker = decoded;
-            break;
-          }
-          lastError = 'Unexpected response from $host for $symbol';
-        } catch (error) {
-          lastError = error;
+    Future<List<Map<String, dynamic>>> fetchHost(String host) async {
+      try {
+        final response = await http
+            .get(
+              Uri.https(
+                host,
+                '/api/v3/ticker/24hr',
+                {'symbols': jsonEncode(symbols)},
+              ),
+              headers: const {'Accept': 'application/json'},
+            )
+            .timeout(const Duration(seconds: 6));
+        if (response.statusCode != 200) {
+          debugPrint('Binance host failed: $host HTTP ${response.statusCode}');
+          return const [];
         }
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          return decoded.cast<Map<String, dynamic>>();
+        }
+      } catch (error) {
+        debugPrint('Binance host unavailable: $host — $error');
       }
-      if (ticker != null) {
-        tickers.add(ticker);
-      } else {
-        debugPrint('Binance ticker skipped: $symbol — $lastError');
-      }
+      return const [];
     }
 
-    if (tickers.isEmpty) {
-      throw Exception('Binance prices unavailable: $lastError');
+    final responses = await Future.wait(hosts.map(fetchHost));
+    for (final tickers in responses) {
+      if (tickers.isNotEmpty) return tickers;
     }
-    return tickers;
+
+    // Never keep the market screen spinning because a price provider is down.
+    // The local/Supabase catalog still renders and the next refresh retries.
+    return const [];
   }
 
   Future<Map<int, bool>> activeVotes() async {
@@ -374,7 +363,7 @@ class _MarketPageState extends State<MarketPage> {
   void initState() {
     super.initState();
     _refresh();
-    timer = Timer.periodic(const Duration(seconds: 15), (_) => _refresh());
+    timer = Timer.periodic(const Duration(seconds: 30), (_) => _refresh());
   }
 
   @override
