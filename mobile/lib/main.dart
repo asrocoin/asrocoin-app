@@ -228,10 +228,13 @@ class MarketService {
     List<String> symbols,
   ) async {
     const hosts = [
+      'data-api.binance.vision',
       'api.binance.com',
+      'api-gcp.binance.com',
       'api1.binance.com',
       'api2.binance.com',
       'api3.binance.com',
+      'api4.binance.com',
     ];
     final tickers = <Map<String, dynamic>>[];
     Object? lastError;
@@ -364,6 +367,7 @@ class _MarketPageState extends State<MarketPage> {
   Timer? timer;
   bool majors = true;
   bool loading = true;
+  bool refreshing = false;
   String? error;
 
   @override
@@ -380,6 +384,8 @@ class _MarketPageState extends State<MarketPage> {
   }
 
   Future<void> _refresh() async {
+    if (refreshing) return;
+    refreshing = true;
     try {
       final results =
           await Future.wait([service.load(), service.activeVotes()]);
@@ -397,6 +403,8 @@ class _MarketPageState extends State<MarketPage> {
         loading = false;
         error = context.l10n.dataRefreshError;
       });
+    } finally {
+      refreshing = false;
     }
   }
 
