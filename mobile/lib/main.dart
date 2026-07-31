@@ -233,33 +233,48 @@ class MarketService {
       'api2.binance.com',
       'api3.binance.com',
     ];
+    final tickers = <Map<String, dynamic>>[];
     Object? lastError;
-    for (final host in hosts) {
-      try {
-        final response = await http
-            .get(
-              Uri.https(
-                host,
-                '/api/v3/ticker/24hr',
-                {'symbols': jsonEncode(symbols)},
-              ),
-              headers: const {'Accept': 'application/json'},
-            )
-            .timeout(const Duration(seconds: 12));
-        if (response.statusCode != 200) {
-          lastError = 'HTTP ${response.statusCode} ($host)';
-          continue;
+
+    for (final symbol in symbols) {
+      Map<String, dynamic>? ticker;
+      for (final host in hosts) {
+        try {
+          final response = await http
+              .get(
+                Uri.https(
+                  host,
+                  '/api/v3/ticker/24hr',
+                  {'symbol': symbol},
+                ),
+                headers: const {'Accept': 'application/json'},
+              )
+              .timeout(const Duration(seconds: 8));
+          if (response.statusCode != 200) {
+            lastError = 'HTTP ${response.statusCode} ($host / $symbol)';
+            continue;
+          }
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map<String, dynamic>) {
+            ticker = decoded;
+            break;
+          }
+          lastError = 'Unexpected response from $host for $symbol';
+        } catch (error) {
+          lastError = error;
         }
-        final decoded = jsonDecode(response.body);
-        if (decoded is List) {
-          return decoded.cast<Map<String, dynamic>>();
-        }
-        lastError = 'Unexpected response from $host';
-      } catch (error) {
-        lastError = error;
+      }
+      if (ticker != null) {
+        tickers.add(ticker);
+      } else {
+        debugPrint('Binance ticker skipped: $symbol — $lastError');
       }
     }
-    throw Exception('Binance prices unavailable: $lastError');
+
+    if (tickers.isEmpty) {
+      throw Exception('Binance prices unavailable: $lastError');
+    }
+    return tickers;
   }
 
   Future<Map<int, bool>> activeVotes() async {
@@ -376,6 +391,7 @@ class _MarketPageState extends State<MarketPage> {
         error = null;
       });
     } catch (e) {
+      debugPrint('Market refresh failed: $e');
       if (!mounted) return;
       setState(() {
         loading = false;
