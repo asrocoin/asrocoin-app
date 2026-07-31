@@ -145,36 +145,36 @@ class CoinData {
 }
 
 class MarketService {
-  Future<List<CoinData>> load() async {
-    final coinRows = List<Map<String, dynamic>>.from(
-      await supabase
-          .from('coins')
-          .select('id,symbol,name,binance_symbol,category,sort_order')
-          .eq('is_active', true)
-          .order('category')
-          .order('sort_order'),
-    );
-    final sentimentRows = List<Map<String, dynamic>>.from(
-      await supabase.from('coin_sentiment').select(),
-    );
-    final sentimentById = {
-      for (final row in sentimentRows) row['coin_id'] as int: row,
-    };
+  static const fallbackCoins = <Map<String, dynamic>>[
+    {'id': 1, 'symbol': 'BTC', 'name': 'Bitcoin', 'binance_symbol': 'BTCUSDT', 'category': 'major', 'sort_order': 1},
+    {'id': 2, 'symbol': 'ETH', 'name': 'Ethereum', 'binance_symbol': 'ETHUSDT', 'category': 'major', 'sort_order': 2},
+    {'id': 3, 'symbol': 'BNB', 'name': 'BNB', 'binance_symbol': 'BNBUSDT', 'category': 'major', 'sort_order': 3},
+    {'id': 4, 'symbol': 'SOL', 'name': 'Solana', 'binance_symbol': 'SOLUSDT', 'category': 'major', 'sort_order': 4},
+    {'id': 5, 'symbol': 'XRP', 'name': 'XRP', 'binance_symbol': 'XRPUSDT', 'category': 'major', 'sort_order': 5},
+    {'id': 6, 'symbol': 'DOGE', 'name': 'Dogecoin', 'binance_symbol': 'DOGEUSDT', 'category': 'major', 'sort_order': 6},
+    {'id': 7, 'symbol': 'ADA', 'name': 'Cardano', 'binance_symbol': 'ADAUSDT', 'category': 'alt', 'sort_order': 1},
+    {'id': 8, 'symbol': 'AVAX', 'name': 'Avalanche', 'binance_symbol': 'AVAXUSDT', 'category': 'alt', 'sort_order': 2},
+    {'id': 9, 'symbol': 'LINK', 'name': 'Chainlink', 'binance_symbol': 'LINKUSDT', 'category': 'alt', 'sort_order': 3},
+    {'id': 10, 'symbol': 'DOT', 'name': 'Polkadot', 'binance_symbol': 'DOTUSDT', 'category': 'alt', 'sort_order': 4},
+    {'id': 11, 'symbol': 'LTC', 'name': 'Litecoin', 'binance_symbol': 'LTCUSDT', 'category': 'alt', 'sort_order': 5},
+    {'id': 12, 'symbol': 'SUI', 'name': 'Sui', 'binance_symbol': 'SUIUSDT', 'category': 'alt', 'sort_order': 6},
+  ];
 
-    final symbols = coinRows.map((row) => row['binance_symbol']).join(',');
-    final uri = Uri.https(
-      'api.binance.com',
-      '/api/v3/ticker/24hr',
-      {'symbols': jsonEncode(symbols.split(','))},
-    );
-    final response = await http.get(uri).timeout(const Duration(seconds: 12));
-    if (response.statusCode != 200) {
-      throw Exception('Binance HTTP ${response.statusCode}');
-    }
-    final tickerRows =
-        List<Map<String, dynamic>>.from(jsonDecode(response.body));
+  Future<List<CoinData>> load() async {
+    final coinRows = await _loadCoinCatalog();
+    final results = await Future.wait([
+      _loadBinanceTickers(
+        coinRows.map((row) => row['binance_symbol'] as String).toList(),
+      ),
+      _loadSentiment(),
+    ]);
+    final tickerRows = results[0] as List<Map<String, dynamic>>;
+    final sentimentRows = results[1] as List<Map<String, dynamic>>;
     final tickerBySymbol = {
       for (final row in tickerRows) row['symbol'] as String: row,
+    };
+    final sentimentById = {
+      for (final row in sentimentRows) row['coin_id'] as int: row,
     };
 
     return coinRows.map((row) {
@@ -196,6 +196,72 @@ class MarketService {
     }).toList();
   }
 
+  Future<List<Map<String, dynamic>>> _loadCoinCatalog() async {
+    try {
+      final rows = List<Map<String, dynamic>>.from(
+        await supabase
+            .from('coins')
+            .select('id,symbol,name,binance_symbol,category,sort_order')
+            .eq('is_active', true)
+            .order('category')
+            .order('sort_order'),
+      );
+      if (rows.isNotEmpty) return rows;
+    } catch (error) {
+      debugPrint('Supabase coin catalog unavailable: $error');
+    }
+    return fallbackCoins.map(Map<String, dynamic>.from).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _loadSentiment() async {
+    try {
+      return List<Map<String, dynamic>>.from(
+        await supabase.from('coin_sentiment').select(),
+      );
+    } catch (error) {
+      debugPrint('Sentiment unavailable: $error');
+      return const [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadBinanceTickers(
+    List<String> symbols,
+  ) async {
+    const hosts = [
+      'api.binance.com',
+      'api1.binance.com',
+      'api2.binance.com',
+      'api3.binance.com',
+    ];
+    Object? lastError;
+    for (final host in hosts) {
+      try {
+        final response = await http
+            .get(
+              Uri.https(
+                host,
+                '/api/v3/ticker/24hr',
+                {'symbols': jsonEncode(symbols)},
+              ),
+              headers: const {'Accept': 'application/json'},
+            )
+            .timeout(const Duration(seconds: 12));
+        if (response.statusCode != 200) {
+          lastError = 'HTTP ${response.statusCode} ($host)';
+          continue;
+        }
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          return decoded.cast<Map<String, dynamic>>();
+        }
+        lastError = 'Unexpected response from $host';
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw Exception('Binance prices unavailable: $lastError');
+  }
+
   Future<Map<int, bool>> activeVotes() async {
     final user = supabase.auth.currentUser;
     if (user == null) return {};
@@ -213,7 +279,7 @@ class MarketService {
 
   Future<void> vote(CoinData coin, bool up) async {
     final user = supabase.auth.currentUser;
-    if (user == null) throw const AuthException('Önce giriş yapmalısın.');
+    if (user == null) throw const AuthException('Authentication required.');
     await supabase.from('predictions').insert({
       'user_id': user.id,
       'coin_id': coin.id,
@@ -350,15 +416,6 @@ class _MarketPageState extends State<MarketPage> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final visible = coins.where((coin) => coin.major == majors).toList();
-    final allVotes = coins.fold<int>(0, (sum, coin) => sum + coin.totalVotes);
-    final marketBullish = allVotes == 0
-        ? 50.0
-        : coins.fold<double>(
-              0,
-              (sum, coin) => sum + coin.bullish * coin.totalVotes,
-            ) /
-            allVotes;
-
     return RefreshIndicator(
       onRefresh: _refresh,
       child: CustomScrollView(
@@ -369,8 +426,6 @@ class _MarketPageState extends State<MarketPage> {
             sliver: SliverList.list(
               children: [
                 const _Header(),
-                const SizedBox(height: 18),
-                _MarketPulse(value: marketBullish, votes: allVotes),
                 const SizedBox(height: 18),
                 SegmentedButton<bool>(
                   segments: [
@@ -489,74 +544,6 @@ class _Header extends StatelessWidget {
           icon: const Icon(Icons.notifications_none_rounded),
         ),
       ],
-    );
-  }
-}
-
-class _MarketPulse extends StatelessWidget {
-  const _MarketPulse({required this.value, required this.votes});
-
-  final double value;
-  final int votes;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final up = value >= 50;
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF173F73), Color(0xFF102B50)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF28558A)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.marketSentiment,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFFAFC9E8),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${formatPercent(context, value)} ${up ? l10n.directionUp : l10n.directionDown}',
-                  style: const TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  votes == 0 ? l10n.firstPrediction : l10n.activePredictions(votes),
-                  style:
-                      const TextStyle(fontSize: 12, color: Color(0xFFC7D6E8)),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 82,
-            height: 82,
-            child: CircularProgressIndicator(
-              value: value / 100,
-              strokeWidth: 8,
-              color: up ? const Color(0xFF24D18F) : const Color(0xFFFF5A6B),
-              backgroundColor: const Color(0xFF263D59),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
